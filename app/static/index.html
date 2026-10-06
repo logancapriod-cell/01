@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101319">
+  <title>Viral Lab · 爆款创作工作台</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#discover"><span class="brand-symbol">v<span>↗</span></span><span>viral<span class="brand-light">lab</span><small>爆款创作工作台</small></span></a>
+    <div class="nav-label">WORKSPACE</div>
+    <nav>
+      <button class="nav-item active" data-page="discover"><span data-icon="compass"></span>发现爆款<span class="nav-dot"></span></button>
+      <button class="nav-item" data-page="sources"><span data-icon="layers"></span>自动采集<span class="nav-count" id="source-count">0</span></button>
+      <button class="nav-item" data-page="plans"><span data-icon="sparkles"></span>创作方案</button>
+      <button class="nav-item" data-page="jobs"><span data-icon="clock"></span>任务记录<span class="nav-count" id="job-count">0</span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="mini-guide"><span class="guide-star">✳</span><h3>灵感，变成你的作品。</h3><p>发现趋势，重新剪辑，<br>让每次创作更有方向。</p><button class="text-link" id="open-guide">了解工作流程 <span>↗</span></button></div>
+      <button class="connection" id="open-settings"><span class="status-dot"></span><span>本地工作台<small id="connection-state">正在连接…</small></span><span data-icon="settings"></span></button>
+    </div>
+  </aside>
+  <main>
+    <header class="topbar"><div class="breadcrumb">工作空间 <span>/</span> <b id="breadcrumb-page">发现爆款</b></div><div class="topbar-right"><span class="platform-status"><i></i> TIKTOK + 抖音</span><div class="avatar">创</div></div></header>
+    <section class="page" id="page-discover">
+      <div class="hero"><div><div class="eyebrow"><span></span> YOUR NEXT BIG IDEA</div><h1>发现下一个<span class="serif-em">，爆款。</span></h1><p>发现值得借鉴的内容，把灵感剪成你的新作品。</p></div><div class="hero-actions"><button class="btn secondary" id="add-local-video"><span data-icon="upload"></span>上传本地视频</button><button class="btn primary" id="add-video"><span data-icon="plus"></span>采集视频</button><input type="file" id="local-video-file" class="hidden" accept=".mp4,.mov,.webm,.mkv"></div></div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-label">已采集视频 <span data-icon="video"></span></div><div class="stat-value" id="stat-videos">0<small>条真实数据</small></div><div class="stat-foot">演示样本单独展示，不计入统计</div></div>
+        <div class="stat"><div class="stat-label">高潜力内容 <span data-icon="trending"></span></div><div class="stat-value" id="stat-viral">0<small>条候选爆款</small></div><div class="stat-foot"><span class="tiny-dot"></span> 综合评分 ≥ 65</div></div>
+        <div class="stat"><div class="stat-label">自动采集源 <span data-icon="layers"></span></div><div class="stat-value" id="stat-sources">0<small>个正在监控</small></div><div class="stat-foot">定时采集，持续追踪互动变化</div></div>
+        <div class="stat"><div class="stat-label">创作方案 <span data-icon="sparkles"></span></div><div class="stat-value" id="stat-plans">0<small>份已保存</small></div><div class="stat-foot">脚本与分镜，随时继续编辑</div></div>
+      </div>
+      <div class="section-heading"><div><h2>灵感发现 <span class="section-count" id="video-count">06</span></h2><p id="feed-subtitle">浏览演示样本，或添加你的第一条真实视频</p></div><div class="mode-switch"><button data-mode="real">我的视频</button><button class="active" data-mode="demo">演示样本 <span>DEMO</span></button></div></div>
+      <div class="filter-bar"><div class="platform-tabs"><button class="active" data-platform="all">全部平台</button><button data-platform="tiktok"><span class="tk-mark">♪</span> TikTok</button><button data-platform="douyin"><span class="dy-mark">♪</span> 抖音</button></div><div class="filter-right"><label class="search-box"><span data-icon="search"></span><input id="video-search" placeholder="搜索主题、作者…" aria-label="搜索视频"></label><select id="video-sort" aria-label="排序"><option value="score">综合评分 ↓</option><option value="views">播放量 ↓</option><option value="collected_at">最近采集 ↓</option><option value="view_growth">播放增长 ↓</option></select><select id="score-filter" aria-label="最低评分"><option value="0">全部评分</option><option value="65">高潜力 ≥ 65</option><option value="80">优选 ≥ 80</option></select></div></div>
+      <div class="demo-notice" id="demo-notice"><span data-icon="info"></span>以下为演示数据与示意封面，未从平台抓取。真实采集的视频会出现在「我的视频」。<button id="import-data">导入 JSON <span>↗</span></button></div>
+      <div class="video-grid" id="video-grid"></div>
+      <div class="flow-note"><span>MAKE IT YOURS</span><div><b>01</b> 发现参考 <i>→</i><b>02</b> 下载与二剪 <i>→</i><b>03</b> 预览并导出</div><p>从一个好点子开始，用自己的表达继续。</p></div>
+    </section>
+    <section class="page hidden" id="page-sources"><div class="page-title"><div><div class="eyebrow">ALWAYS LOOKING AHEAD</div><h1>自动采集<span class="serif-em">，不错过趋势。</span></h1><p>设置视频或 TikTok 账号链接，定时更新内容与互动指标。</p></div><button class="btn primary" id="add-source"><span data-icon="plus"></span>添加采集源</button></div><div class="notice">TikTok 支持视频及公开账号主页；抖音支持视频分享链接。采集结果取决于网络与登录状态，当前不接入平台官方全站热榜。</div><div id="source-list"></div></section>
+    <section class="page hidden" id="page-plans"><div class="page-title"><div><div class="eyebrow">FROM IDEA TO STORY</div><h1>创作方案<span class="serif-em">，让灵感落地。</span></h1><p>围绕参考主题，创建、编辑并导出你的脚本与分镜。</p></div></div><div id="plan-list"></div></section>
+    <section class="page hidden" id="page-jobs"><div class="page-title"><div><div class="eyebrow">EVERY STEP, IN VIEW</div><h1>任务记录<span class="serif-em">，进度看得见。</span></h1><p>查看采集、下载和剪辑的真实执行结果。</p></div><button class="btn secondary" id="refresh-jobs"><span data-icon="refresh"></span>刷新</button></div><div id="job-list"></div></section>
+    <footer><span>VIRAL LAB</span><span>少一点重复，多一点自己的表达。</span><span>v0.1 / 创作工作台</span></footer>
+  </main>
+  <dialog id="modal"><div class="modal-head"><div><span class="eyebrow" id="modal-eyebrow">WORKSPACE</span><h2 id="modal-title"></h2></div><button class="icon-button" id="close-modal" aria-label="关闭"><span data-icon="x"></span></button></div><div id="modal-body"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
