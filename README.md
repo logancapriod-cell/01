@@ -10,7 +10,7 @@
 
 先点击「上传本地视频」，选择原片，设置截取时间、画幅、速度和文字，再点击「下载并生成二剪视频」。结果在工作台内预览、下载，原片保留。平台下载是另外的流程，需要平台允许访问。
 
-如果缺少 winget，请在 Microsoft Store 安装或更新「应用安装程序」。Windows PowerShell 脚本使用 UTF-8 BOM；FFmpeg 中文字体自动尝试微软雅黑等系统字体。详情见「先读我.txt」。Windows 启动脚本尚未经过真实 Windows 实机验证，安装或启动异常请保留窗口错误文字。
+如果缺少 winget，请在 Microsoft Store 安装或更新「应用安装程序」。Windows PowerShell 脚本使用 UTF-8 BOM；FFmpeg 中文字体自动尝试微软雅黑等系统字体。平台登录可在左下角「本地工作台」中读取 Edge / Chrome / Firefox 默认配置，或选择 Netscape 格式 cookies.txt。只保存抖音和 TikTok cookies，文件保存在忽略的 `data/private`，重启后恢复，可在页面清除。Chrome / Edge 加密保护可能阻止读取，Firefox 或自行导出的文件是备用方式。此入口只在本机启动模式启用并限制本机来源。配置成功仍不能保证平台允许采集。详情见「先读我.txt」。Windows 启动脚本尚未经过真实 Windows 实机验证，安装或启动异常请保留窗口错误文字。
 
 ## 云环境运行
 
@@ -115,7 +115,7 @@ cd /workspace/01
 node --check app/static/app.js
 ```
 
-测试包含真实 FFmpeg 编码、上传、原片保留、时长与画幅与音轨核对、自动流水线、定时触发、去重、导出、错误结果和输入校验。平台接口在测试中用 fixture 替代；此项不证明平台当前可抓取。
+测试包含本机登录文件的格式与域名过滤、过期登录拒绝、配置恢复和清除、Firefox SQLite fixture 读取、跨站与远程请求拒绝、以及真实 FFmpeg 编码、上传、原片保留、时长与画幅与音轨核对、自动流水线、定时触发、去重、导出、错误结果和输入校验。平台接口在测试中用 fixture 替代；此项不证明平台当前可抓取。
 
 可选浏览器验证（需 Playwright 和 Chromium）：
 
@@ -123,4 +123,4 @@ node --check app/static/app.js
 python3 tests/browser_smoke.py
 ```
 
-浏览器测试使用独立临时数据库与 8001 端口，验证筛选、方案编辑和 ZIP 下载、本地上传、真实剪辑、MP4 预览与下载、任务列表和移动布局。通过 `CHROMIUM_PATH` 指定 Chromium。
+浏览器测试使用独立临时数据库与 8001 端口，验证本机登录文件导入、状态恢复、清除和错误提示、筛选、方案编辑和 ZIP 下载、本地上传、真实剪辑、MP4 预览与下载、任务列表和移动布局。通过 `CHROMIUM_PATH` 指定 Chromium。

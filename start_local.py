@@ -48,8 +48,9 @@ def main():
         webbrowser.open(url)
         return
     print('正在启动 Viral Lab。请保留此窗口，关闭窗口会停止工具。', flush=True)
+    environment = dict(os.environ, VIRALLAB_LOCAL_LOGIN='1')
     process = subprocess.Popen([sys.executable, '-m', 'uvicorn', 'app.main:app',
-                                '--host', '127.0.0.1', '--port', str(port)], cwd=ROOT)
+                                '--host', '127.0.0.1', '--port', str(port)], cwd=ROOT, env=environment)
     try:
         for _ in range(120):
             if process.poll() is not None:

@@ -17,7 +17,7 @@ def run():
         subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi',
                         '-i', 'testsrc2=size=320x240:rate=30', '-t', '3', '-c:v', 'libx264',
                         '-threads', '2', str(clip)], check=True)
-        environment = dict(os.environ, VIRALLAB_DATA_DIR=str(Path(temporary) / 'data'))
+        environment = dict(os.environ, VIRALLAB_DATA_DIR=str(Path(temporary) / 'data'), VIRALLAB_LOCAL_LOGIN='1', VIRALLAB_COOKIES_FILE='')
         server = subprocess.Popen([str(ROOT / '.venv/bin/python'), '-m', 'uvicorn', 'app.main:app',
                                    '--host', '127.0.0.1', '--port', '8001'], cwd=ROOT, env=environment,
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -37,6 +37,21 @@ def run():
                 page.on('pageerror', lambda e: errors.append(str(e)))
                 page.goto('http://127.0.0.1:8001', wait_until='networkidle')
                 expect(page.locator('.video-card')).to_have_count(6)
+
+                page.locator('#open-settings').click()
+                expect(page.locator('#browser-login-form')).to_be_visible()
+                page.locator('#login-file').set_input_files({'name': 'cookies.txt', 'mimeType': 'text/plain',
+                    'buffer': b'# Netscape HTTP Cookie File\n.douyin.com\tTRUE\t/\tTRUE\t0\tsessionid\tfake-browser-test\n'})
+                expect(page.locator('#login-feedback')).to_contain_text('登录状态已保存', timeout=15000)
+                expect(page.locator('#login-state')).to_contain_text('已配置')
+                page.reload(wait_until='networkidle')
+                page.locator('#open-settings').click()
+                expect(page.locator('#login-state')).to_contain_text('已配置')
+                page.locator('#clear-login').click()
+                expect(page.locator('#login-feedback')).to_contain_text('已清除')
+                page.locator('#login-file').set_input_files({'name': 'cookies.txt', 'mimeType': 'text/plain', 'buffer': b'not-cookies'})
+                expect(page.locator('#login-feedback')).to_contain_text('格式不正确')
+                page.locator('#close-modal').click()
                 page.locator('[data-platform=tiktok]').click()
                 expect(page.locator('.video-card')).to_have_count(3)
                 page.locator('#video-search').fill('咖啡')
@@ -95,7 +110,7 @@ def run():
                 assert not page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
                 assert not errors, errors
                 browser.close()
-                print('UI passed: filters, plan editing/export, upload, actual editing, playback, MP4 download, job history, mobile layout. No JS errors.')
+                print('UI passed: local login import/reload/clear/error, filters, plan editing/export, upload, actual editing, playback, MP4 download, job history, mobile layout. No JS errors.')
         finally:
             server.terminate()
             server.wait(timeout=10)

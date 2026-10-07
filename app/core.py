@@ -127,7 +127,9 @@ def extract(url: str) -> list[dict]:
     if proc.returncode:
         error = proc.stderr.lower()
         if any(word in error for word in ('cookie', 'login', 'sign in', 'captcha', 'verify')):
-            raise ValueError('平台要求登录或验证。请在运行环境配置你有权使用的 cookies 文件，或导入 JSON；工具不会绕过验证。')
+            if cookie_file:
+                raise ValueError('已使用登录文件，但平台仍要求登录或验证。请在浏览器打开同一视频，登录并完成验证后，重新读取或导入登录状态；平台也可能限制此采集适配器。可以上传本地原片继续二剪。')
+            raise ValueError('平台要求登录或验证。请打开「连接设置 → 平台登录」，配置本机浏览器登录状态或自己的 cookies.txt 后重试。也可以上传本地原片直接二剪。')
         if 'unsupported url' in error:
             raise ValueError('该链接类型尚不受采集适配器支持，请使用单个视频分享链接或 JSON 导入。')
         if any(word in error for word in ('403', 'blocked', 'proxy', 'connection', 'resolve', 'network', 'unable to download')):

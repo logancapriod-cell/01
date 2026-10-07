@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import core, storage
+from . import core, storage, login
 from .render import render_preview
 from .media import download_original, edit_video, probe, MAX_BYTES
 
@@ -28,6 +28,10 @@ submit_lock = threading.Lock()
 
 class CollectInput(BaseModel):
     url: str = Field(min_length=8, max_length=3000)
+
+
+class BrowserLoginInput(BaseModel):
+    browser: str = Field(pattern='^(edge|chrome|firefox)$')
 
 
 class SourceInput(CollectInput):
@@ -178,6 +182,7 @@ async def scheduler():
 async def lifespan(app):
     storage.initialize()
     storage.seed_demo()
+    login.restore()
     task = asyncio.create_task(scheduler())
     yield
     task.cancel()
@@ -218,9 +223,45 @@ def settings():
     import yt_dlp.version
     return {'extractor_version': yt_dlp.version.__version__, 'ffmpeg': bool(shutil.which('ffmpeg')),
             'cookies_configured': bool(os.environ.get('VIRALLAB_COOKIES_FILE') and Path(os.environ['VIRALLAB_COOKIES_FILE']).is_file()),
+            'local_login_enabled': login.enabled(),
             'ai_configured': bool(os.environ.get('VIRALLAB_LLM_KEY')), 'model': os.environ.get('VIRALLAB_LLM_MODEL', 'gpt-4o-mini'),
             'capabilities': {'tiktok': '视频链接、分享链接、公开账号主页（取决于平台可访问性）',
                              'douyin': '视频链接、分享链接；暂不支持账号主页与官方热榜接口'}}
+
+
+def require_local_login(request):
+    if not login.enabled() or not request.client or request.client.host not in ('127.0.0.1', '::1') or request.url.hostname not in ('127.0.0.1', 'localhost', '::1') or request.headers.get('x-virallab-local') != '1':
+        raise HTTPException(403, '登录配置仅允许在本机工作台中操作。')
+
+
+@app.post('/api/login/file')
+async def import_login_file(request: Request, file: UploadFile = File(...)):
+    try:
+        require_local_login(request)
+        data = await file.read(login.MAX_COOKIE_BYTES + 1)
+        if len(data) > login.MAX_COOKIE_BYTES:
+            raise HTTPException(413, '登录文件不能超过 2 MB。')
+        try:
+            return login.save(login.parse(data))
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+    finally:
+        await file.close()
+
+
+@app.post('/api/login/browser')
+def import_browser_login(request: Request, body: BrowserLoginInput):
+    require_local_login(request)
+    try:
+        return login.from_browser(body.browser)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from None
+
+
+@app.delete('/api/login')
+def clear_login(request: Request):
+    require_local_login(request)
+    return login.clear()
 
 
 @app.get('/api/videos')
