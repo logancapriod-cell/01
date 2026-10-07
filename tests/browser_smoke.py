@@ -62,6 +62,7 @@ def run():
                 page.locator('#collect-form [type=submit]').click()
                 expect(page.locator('#collect-progress')).to_contain_text('不能据此判断登录已失效', timeout=10000)
                 expect(page.locator('#collect-progress [data-action=login]')).to_have_count(0)
+                expect(page.locator('#collect-progress [data-action=browser-capture]')).to_be_visible()
                 with page.expect_file_chooser() as chooser:
                     page.locator('#collect-progress [data-action=local-video]').click()
                 assert chooser.value.element.get_attribute('id') == 'local-video-file'
@@ -71,6 +72,7 @@ def run():
                 expect(page.locator('.video-card')).to_have_count(3)
                 page.locator('#video-search').fill('咖啡')
                 expect(page.locator('.video-card')).to_have_count(1)
+
                 page.locator('#video-search').fill('')
                 page.get_by_role('button', name='全部平台', exact=True).click()
                 expect(page.locator('.video-card')).to_have_count(6)
@@ -120,12 +122,37 @@ def run():
                 expect(page.locator('.edit-reference video')).to_be_visible()
                 page.locator('#close-modal').click()
                 expect(page.locator('.video-card')).to_have_count(1)
+                imported_id = page.locator('[data-edit-video]').first.get_attribute('data-edit-video')
+                original = httpx.get(f'http://127.0.0.1:8001/api/videos/{imported_id}/media').json()['media'][0]
+                browser_polls = [0]
+                def capture_job(route):
+                    browser_polls[0] += 1
+                    route.fulfill(json={'id': 'browser-fixture', 'kind': 'browser',
+                        'status': 'running' if browser_polls[0] < 3 else 'completed',
+                        'result': {'progress': '请在新窗口播放视频', 'count': 1,
+                                   'video_id': int(imported_id), 'video_ids': [int(imported_id)], 'original': original}})
+                def capture_request(route):
+                    assert route.request.headers.get('x-virallab-local') == '1'
+                    route.fulfill(json={'job_id': 'browser-fixture'}, status=202)
+                page.route('**/api/browser-capture', capture_request)
+                page.route('**/api/jobs/browser-fixture', capture_job)
+                page.locator('#add-video').click()
+                page.locator('#collect-form [name=url]').fill('https://v.douyin.com/a8K-9UYxFnI/')
+                page.locator('#browser-collect').click()
+                expect(page.locator('#collect-progress')).to_contain_text('请在新窗口播放视频', timeout=10000)
+                expect(page.get_by_role('button', name='原片已保存，开始二剪')).to_be_visible(timeout=10000)
+                page.get_by_role('button', name='原片已保存，开始二剪').click()
+                expect(page.locator('#edit-form')).to_be_visible()
+                expect(page.locator('.edit-reference video')).to_be_visible()
+                page.locator('#close-modal').click()
+                page.unroute('**/api/browser-capture')
+                page.unroute('**/api/jobs/browser-fixture')
                 page.set_viewport_size({'width': 390, 'height': 844})
                 page.screenshot(path='/tmp/virallab-mobile.png', full_page=True)
                 assert not page.evaluate('document.documentElement.scrollWidth > window.innerWidth')
                 assert not errors, errors
                 browser.close()
-                print('UI passed: local login import/reload/clear/error, filters, plan editing/export, upload, actual editing, playback, MP4 download, job history, mobile layout. No JS errors.')
+                print('UI passed: browser capture entry/progress/result/edit handoff, local login import/reload/clear/error, filters, plan editing/export, upload, actual editing, playback, MP4 download, job history, mobile layout. No JS errors.')
         finally:
             server.terminate()
             server.wait(timeout=10)

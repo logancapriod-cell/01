@@ -59,11 +59,26 @@ class LoginTests(unittest.TestCase):
         self.assertEqual(len(jar), 1)
         browser_file = Path(self.temp.name) / 'browser-original.txt'
         browser_file.write_text('browser remains logged in')
+        owned_profile = storage.DATA_DIR / 'private' / 'capture-browser'
+        owned_profile.mkdir()
+        (owned_profile / 'Cookies').write_text('app-owned-browser-session')
         response = self.client.delete('/api/login', headers=HEADERS)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(login.login_path().exists())
+        self.assertFalse(owned_profile.exists())
         self.assertNotIn('VIRALLAB_COOKIES_FILE', os.environ)
         self.assertEqual(browser_file.read_text(), 'browser remains logged in')
+
+    def test_clear_refuses_while_capture_browser_is_active(self):
+        from app.browser_capture import capture_lock
+        self.upload(HEADER + cookie())
+        capture_lock.acquire()
+        try:
+            response = self.client.delete('/api/login', headers=HEADERS)
+            self.assertEqual(response.status_code, 409)
+            self.assertTrue(login.login_path().is_file())
+        finally:
+            capture_lock.release()
 
     def test_reimport_replaces_same_platform_and_preserves_other_platform(self):
         self.assertEqual(self.upload(HEADER + cookie() + cookie('.tiktok.com', 'tiktok-session')).status_code, 200)

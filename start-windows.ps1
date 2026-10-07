@@ -27,6 +27,15 @@ try {
     if (-not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
         throw 'FFmpeg 安装未提供 ffprobe，请重新安装 Gyan.FFmpeg。'
     }
+    $EdgePresent = $false
+    foreach ($Base in @(${env:ProgramFiles(x86)}, $env:ProgramFiles, $env:LOCALAPPDATA)) {
+        if ($Base -and (Test-Path -LiteralPath (Join-Path $Base 'Microsoft\Edge\Application\msedge.exe'))) {
+            $EdgePresent = $true
+        }
+    }
+    if (-not $EdgePresent) {
+        Write-Host '浏览器辅助采集需要 Microsoft Edge。若没有安装，请先安装 Edge；本地上传二剪仍可使用。'
+    }
     if (-not $env:VIRALLAB_FONT) {
         foreach ($Name in @('msyh.ttc', 'msyh.ttf', 'simhei.ttf', 'simsun.ttc')) {
             $Font = Join-Path $env:WINDIR ('Fonts\' + $Name)

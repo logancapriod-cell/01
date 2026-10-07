@@ -20,6 +20,8 @@ from pydantic import BaseModel, Field
 from . import core, storage, login
 from .render import render_preview
 from .media import download_original, edit_video, probe, MAX_BYTES
+from .browser_capture import capture as capture_browser_video
+from .browser_capture import capture_lock
 
 ROOT = Path(__file__).resolve().parent
 executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix='virallab')
@@ -224,6 +226,8 @@ def settings():
     return {'extractor_version': yt_dlp.version.__version__, 'ffmpeg': bool(shutil.which('ffmpeg')),
             'cookies_configured': bool(os.environ.get('VIRALLAB_COOKIES_FILE') and Path(os.environ['VIRALLAB_COOKIES_FILE']).is_file()),
             'local_login_enabled': login.enabled(),
+            'browser_capture_enabled': login.enabled(),
+            'browser_profile_saved': (storage.DATA_DIR / 'private' / 'capture-browser').is_dir(),
             'ai_configured': bool(os.environ.get('VIRALLAB_LLM_KEY')), 'model': os.environ.get('VIRALLAB_LLM_MODEL', 'gpt-4o-mini'),
             'capabilities': {'tiktok': '视频链接、分享链接、公开账号主页（取决于平台可访问性）',
                              'douyin': '视频链接、分享链接；暂不支持账号主页与官方热榜接口'}}
@@ -261,7 +265,18 @@ def import_browser_login(request: Request, body: BrowserLoginInput):
 @app.delete('/api/login')
 def clear_login(request: Request):
     require_local_login(request)
-    return login.clear()
+    if not capture_lock.acquire(blocking=False):
+        raise HTTPException(409, '请先关闭浏览器采集窗口，再清除登录状态。')
+    try:
+        profile = storage.DATA_DIR / 'private' / 'capture-browser'
+        if profile.exists():
+            try:
+                shutil.rmtree(profile)
+            except OSError:
+                raise HTTPException(409, '专用采集浏览器仍被占用，请关闭该窗口后重试。') from None
+        return login.clear()
+    finally:
+        capture_lock.release()
 
 
 @app.get('/api/videos')
@@ -298,6 +313,25 @@ def collect(body: CollectInput):
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from None
     return {'job_id': submit_job('collect', '链接采集', collect_task(url))}
+
+
+@app.post('/api/browser-capture', status_code=202)
+def browser_capture(request: Request, body: CollectInput):
+    require_local_login(request)
+    try:
+        url = core.clean_url(body.url)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from None
+    def run(job_id):
+        def progress(message):
+            with storage.connect() as db:
+                db.execute('UPDATE jobs SET result=? WHERE id=?', (json.dumps({'progress': message}), job_id))
+        video, path, info = capture_browser_video(url, storage.DATA_DIR / 'media' / job_id, progress)
+        video_id = storage.upsert_video(video)
+        original = save_media(video_id, 'original', path)
+        return {'count': 1, 'video_ids': [video_id], 'video_id': video_id, 'original': original,
+                'duration': info['duration'], 'collection_method': '浏览器辅助采集'}
+    return {'job_id': submit_job('browser', '浏览器辅助采集', run)}
 
 
 @app.post('/api/import')
