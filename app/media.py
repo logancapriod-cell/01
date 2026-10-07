@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from .core import clean_url
+from .core import clean_url, douyin_detail_error
 
 MAX_BYTES = 300 * 1024 * 1024
 
@@ -29,6 +29,9 @@ def download_original(url, directory):
     path = directory / 'source.mp4'
     if process.returncode or not path.is_file():
         stderr = process.stderr.lower()
+        detail_error = douyin_detail_error(url, stderr, os.environ.get('VIRALLAB_COOKIES_FILE'))
+        if detail_error:
+            raise ValueError(detail_error)
         if any(t in stderr for t in ('cookie', 'login', 'captcha', 'verify')):
             raise ValueError('下载需要平台登录或验证，请配置你有权使用的 cookies 文件后重试。')
         if 'filesize' in stderr or 'duration' in stderr:

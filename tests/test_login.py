@@ -131,6 +131,15 @@ class LoginTests(unittest.TestCase):
         command = run.call_args.args[0]
         self.assertEqual(command[command.index('--cookies') + 1], str(login.login_path().resolve()))
 
+    def test_empty_douyin_detail_is_not_reported_as_definitely_expired_login(self):
+        message = core.douyin_detail_error('https://www.douyin.com/video/1',
+                                          'Fresh cookies (not necessarily logged in) are needed', '/private/cookies.txt')
+        self.assertIn('详情接口未返回视频数据', message)
+        self.assertIn('不能据此判断登录已失效', message)
+        self.assertNotIn('/private/cookies.txt', message)
+        self.assertIsNone(core.douyin_detail_error('https://www.tiktok.com/@test/video/1', 'Fresh cookies'))
+        self.assertIsNone(core.douyin_detail_error('https://www.douyin.com/video/1', 'Sign in required'))
+
 
 if __name__ == '__main__':
     unittest.main()

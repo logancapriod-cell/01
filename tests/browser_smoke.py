@@ -52,6 +52,21 @@ def run():
                 page.locator('#login-file').set_input_files({'name': 'cookies.txt', 'mimeType': 'text/plain', 'buffer': b'not-cookies'})
                 expect(page.locator('#login-feedback')).to_contain_text('格式不正确')
                 page.locator('#close-modal').click()
+
+                page.route('**/api/collect', lambda route: route.fulfill(json={'job_id': 'douyin-detail-fixture'}, status=202))
+                page.route('**/api/jobs/douyin-detail-fixture', lambda route: route.fulfill(json={
+                    'id': 'douyin-detail-fixture', 'kind': 'collect', 'status': 'failed',
+                    'error': '抖音详情接口未返回视频数据（已使用登录文件）。不能据此判断登录已失效。'}))
+                page.locator('#add-video').click()
+                page.locator('#collect-form [name=url]').fill('https://www.douyin.com/video/7667152036157720827')
+                page.locator('#collect-form [type=submit]').click()
+                expect(page.locator('#collect-progress')).to_contain_text('不能据此判断登录已失效', timeout=10000)
+                expect(page.locator('#collect-progress [data-action=login]')).to_have_count(0)
+                with page.expect_file_chooser() as chooser:
+                    page.locator('#collect-progress [data-action=local-video]').click()
+                assert chooser.value.element.get_attribute('id') == 'local-video-file'
+                page.unroute('**/api/collect')
+                page.unroute('**/api/jobs/douyin-detail-fixture')
                 page.locator('[data-platform=tiktok]').click()
                 expect(page.locator('.video-card')).to_have_count(3)
                 page.locator('#video-search').fill('咖啡')

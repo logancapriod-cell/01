@@ -109,6 +109,16 @@ def normalize(info: dict, fallback_url: str = '') -> dict:
     return result
 
 
+def douyin_detail_error(url, stderr, cookie_file=None):
+    # DouyinIE uses this message for every empty detail response, including 403
+    # and incompatible responses. It does not establish that a login expired.
+    if platform_for(url) == 'douyin' and 'fresh cookies' in stderr.lower():
+        status = '已使用登录文件' if cookie_file else '尚未配置登录文件'
+        return (f'抖音详情接口未返回视频数据（{status}）。这类错误也可能来自平台访问限制或采集适配器不兼容，'
+                '不能据此判断登录已失效。当前自动采集未成功，可以上传本地原片继续二剪。')
+    return None
+
+
 def extract(url: str) -> list[dict]:
     url = clean_url(url)
     command = [sys.executable, '-m', 'yt_dlp', '--dump-single-json', '--flat-playlist',
@@ -126,6 +136,9 @@ def extract(url: str) -> list[dict]:
         raise ValueError('平台请求超时，请稍后重试，或使用 JSON 导入。') from None
     if proc.returncode:
         error = proc.stderr.lower()
+        detail_error = douyin_detail_error(url, error, cookie_file)
+        if detail_error:
+            raise ValueError(detail_error)
         if any(word in error for word in ('cookie', 'login', 'sign in', 'captcha', 'verify')):
             if cookie_file:
                 raise ValueError('已使用登录文件，但平台仍要求登录或验证。请在浏览器打开同一视频，登录并完成验证后，重新读取或导入登录状态；平台也可能限制此采集适配器。可以上传本地原片继续二剪。')
